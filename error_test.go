@@ -18,9 +18,9 @@ func Example(t *testing.T) {
 	baseline := important.Unseen()
 	err, seen := important.ErrorSeen(errors.New("forget me not"))
 
-	fmt.Println(err)        // Observed: calls Error method.
-	fmt.Printf("%v\n", err) // Observed: calls Error method.
-	fmt.Printf("%s\n", err) // Observed (but incorrect usage).
+	fmt.Println(err)        // Not observed.
+	fmt.Printf("%v\n", err) // Not observed.
+	fmt.Printf("%s\n", err) // Not observed.
 
 	var linkError *os.LinkError
 
@@ -29,8 +29,11 @@ func Example(t *testing.T) {
 	errors.As(err, &linkError)  // Observed.
 	os.IsExist(err)             // Not observed (IsExist is a legacy API).
 
-	fmt.Errorf("%v", err) // Observed.
-	fmt.Errorf("%w", err) // Observed.
+	err2 := fmt.Errorf("%v", err) // Not observed.
+	err3 := fmt.Errorf("%w", err) // Not observed.
+
+	errors.Unwrap(errors.Unwrap(err2)) // Not observed: %v didn't wrap err.
+	errors.Unwrap(errors.Unwrap(err3)) // Observed: %w wrapped err.
 
 	if !seen() {
 		t.Fail()
@@ -40,19 +43,14 @@ func Example(t *testing.T) {
 	}
 }
 
-func TestSeen(t *testing.T) {
+func TestError(t *testing.T) {
 	err, seen := important.ErrorSeen(io.EOF)
 	if seen() {
 		t.Fail()
 	}
 
 	err.Error()
-	if !seen() {
-		t.Fail()
-	}
-
-	err.Error()
-	if !seen() {
+	if seen() {
 		t.Fail()
 	}
 }
@@ -60,7 +58,7 @@ func TestSeen(t *testing.T) {
 func TestPrint(t *testing.T) {
 	err, seen := important.ErrorSeen(io.EOF)
 	fmt.Sprint(err)
-	if !seen() {
+	if seen() {
 		t.Fail()
 	}
 }
@@ -68,7 +66,7 @@ func TestPrint(t *testing.T) {
 func TestFormatV(t *testing.T) {
 	err, seen := important.ErrorSeen(io.EOF)
 	fmt.Sprintf("%v", err)
-	if !seen() {
+	if seen() {
 		t.Fail()
 	}
 }
@@ -76,22 +74,33 @@ func TestFormatV(t *testing.T) {
 func TestFormatS(t *testing.T) {
 	err, seen := important.ErrorSeen(io.EOF)
 	fmt.Sprintf("%s", err)
-	if !seen() { // ?
+	if seen() { // ?
 		t.Fail()
 	}
 }
 
 func TestErrorV(t *testing.T) {
 	err, seen := important.ErrorSeen(io.EOF)
-	fmt.Errorf("%v", err)
-	if !seen() {
+
+	err = fmt.Errorf("%v", err)
+	if seen() {
+		t.Fail()
+	}
+
+	errors.Unwrap(errors.Unwrap(err))
+	if seen() {
 		t.Fail()
 	}
 }
 
 func TestErrorW(t *testing.T) {
 	err, seen := important.ErrorSeen(io.EOF)
-	fmt.Errorf("%w", err)
+	err = fmt.Errorf("%w", err)
+	if seen() {
+		t.Fail()
+	}
+
+	errors.Unwrap(errors.Unwrap(err))
 	if !seen() {
 		t.Fail()
 	}
@@ -99,6 +108,14 @@ func TestErrorW(t *testing.T) {
 
 func TestUnwrap(t *testing.T) {
 	err, seen := important.ErrorSeen(io.EOF)
+
+	if errors.Unwrap(err) != io.EOF {
+		t.Fail()
+	}
+	if !seen() {
+		t.Fail()
+	}
+
 	if errors.Unwrap(err) != io.EOF {
 		t.Fail()
 	}
@@ -145,7 +162,7 @@ func TestUnseen(t *testing.T) {
 		t.Error(n)
 	}
 
-	err.Error()
+	errors.Unwrap(err)
 	if n := important.Unseen() - baseline; n != 0 {
 		t.Error(n)
 	}

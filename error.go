@@ -4,8 +4,8 @@
 
 // Package important can be used to flag returned error values as important.
 // Important errors need to be observed.  Observation means invocation of the
-// Error or the Unwrap method.  Unobserved errors cause no side-effects by
-// default, but they may be checked in tests or tracked otherwise.
+// the Unwrap method.  Unobserved errors cause no side-effects by default, but
+// they may be checked in tests or tracked otherwise.
 package important
 
 import (
@@ -20,7 +20,7 @@ type errorType struct {
 }
 
 func (e *errorType) Error() string {
-	return e.Unwrap().Error()
+	return e.err.Error()
 }
 
 func (e *errorType) Unwrap() error {
