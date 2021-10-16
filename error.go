@@ -9,6 +9,7 @@
 package important
 
 import (
+	"errors"
 	"sync/atomic"
 )
 
@@ -44,6 +45,18 @@ func ErrorSeen(err error) (error, func() bool) {
 	e := &errorType{err: err}
 	f := func() bool { return atomic.LoadInt64(&e.seen) != 0 }
 	return e, f
+}
+
+// Unwrap until the outermost important error, and return the error it wraps.
+// If none is found, Unwrap returns nil.
+//
+// This can be used to flag a nested error as having been observed.
+func Unwrap(err error) error {
+	var e *errorType
+	if errors.As(err, &e) {
+		return e.Unwrap()
+	}
+	return nil
 }
 
 // Unseen error count since the start of the program.

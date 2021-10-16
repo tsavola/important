@@ -34,6 +34,7 @@ func Example(t *testing.T) {
 
 	errors.Unwrap(errors.Unwrap(err2)) // Not observed: %v didn't wrap err.
 	errors.Unwrap(errors.Unwrap(err3)) // Observed: %w wrapped err.
+	important.Unwrap(err3)             // Observed.
 
 	if !seen() {
 		t.Fail()
@@ -106,7 +107,7 @@ func TestErrorW(t *testing.T) {
 	}
 }
 
-func TestUnwrap(t *testing.T) {
+func TestUnwrapAny(t *testing.T) {
 	err, seen := important.ErrorSeen(io.EOF)
 
 	if errors.Unwrap(err) != io.EOF {
@@ -120,6 +121,29 @@ func TestUnwrap(t *testing.T) {
 		t.Fail()
 	}
 	if !seen() {
+		t.Fail()
+	}
+}
+
+func TestUnwrapImportant(t *testing.T) {
+	err, seen := important.ErrorSeen(io.EOF)
+	if important.Unwrap(err) != io.EOF {
+		t.Fail()
+	}
+	if !seen() {
+		t.Fail()
+	}
+
+	err, seen = important.ErrorSeen(io.EOF)
+	err = fmt.Errorf("%w", err)
+	if important.Unwrap(err) != io.EOF {
+		t.Fail()
+	}
+	if !seen() {
+		t.Fail()
+	}
+
+	if important.Unwrap(io.EOF) != nil {
 		t.Fail()
 	}
 }
