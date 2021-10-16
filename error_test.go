@@ -14,8 +14,9 @@ import (
 	"github.com/tsavola/important"
 )
 
-func Example(t *testing.T) {
-	baseline := important.Unseen()
+func Example() {
+	_ = important.Unseen() // Total count.
+
 	err, seen := important.ErrorSeen(errors.New("forget me not"))
 
 	fmt.Println(err)        // Not observed.
@@ -36,12 +37,8 @@ func Example(t *testing.T) {
 	errors.Unwrap(errors.Unwrap(err3)) // Observed: %w wrapped err.
 	important.Unwrap(err3)             // Observed.
 
-	if !seen() {
-		t.Fail()
-	}
-	if important.Unseen() != baseline {
-		t.Fail()
-	}
+	_ = seen()             // True.
+	_ = important.Unseen() // Unchanged (unless other goroutines soil it).
 }
 
 func TestError(t *testing.T) {
